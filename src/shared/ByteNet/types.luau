@@ -62,6 +62,7 @@ export type ByteNet = {
 	int8: number,
 	int16: number,
 	int32: number,
+	float16: number,
 	float32: number,
 	float64: number,
 	string: string,

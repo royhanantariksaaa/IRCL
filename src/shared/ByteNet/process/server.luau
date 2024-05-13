@@ -15,6 +15,8 @@ local load = bufferWriter.load
 -- All channelData is set to nil upon being sent which is why these are all optionals
 local perPlayerReliable: { [Player]: types.channelData } = {}
 local perPlayerUnreliable: { [Player]: types.channelData } = {}
+local perPlayerExceptionReliable: { [Player]: types.channelData } = {}
+local perPlayerExceptionUnreliable: { [Player]: types.channelData } = {}
 
 -- Shared with: src/process/client.luau (Infeasible to split this into another file)
 local function create()
@@ -38,6 +40,8 @@ end
 
 local globalReliable: types.channelData = create()
 local globalUnreliable: types.channelData = create()
+-- local globalExceptionUnreliable: types.channelData = create()
+-- local globalExceptionReliable: types.channelData = create()
 
 -- TODO handle invalid data better
 local function onServerEvent(player: Player, data, references)
@@ -52,10 +56,12 @@ end
 local function playerAdded(player)
 	if not perPlayerReliable[player] then
 		perPlayerReliable[player] = create()
+		perPlayerExceptionReliable[player] = create()
 	end
 
 	if not perPlayerUnreliable[player] then
 		perPlayerUnreliable[player] = create()
+		perPlayerExceptionUnreliable[player] = create()
 	end
 end
 
@@ -71,8 +77,40 @@ function serverProcess.sendAllReliable(id: number, writer: (value: any) -> (), d
 	globalReliable = bufferWriter.export()
 end
 
+function serverProcess.sendPlayerReliableExcept(
+	player: Player,
+	id: number,
+	writer: (value: any) -> (),
+	data: { [string]: any }
+)
+	playerAdded(player)
+	load(perPlayerExceptionReliable[player])
+
+	alloc(1)
+	u8(id)
+	writer(data)
+
+	perPlayerExceptionReliable[player] = bufferWriter.export()
+end
+
+function serverProcess.sendPlayerUnreliableExcept(
+	player: Player,
+	id: number,
+	writer: (value: any) -> (),
+	data: { [string]: any }
+)
+	playerAdded(player)
+	load(perPlayerExceptionUnreliable[player])
+
+	alloc(1)
+	u8(id)
+	writer(data)
+
+	perPlayerExceptionUnreliable[player] = bufferWriter.export()
+end
+
 function serverProcess.sendAllUnreliable(id: number, writer: (value: any) -> (), data: { [string]: any })
-	load(globalUnreliable or create())
+	load(globalUnreliable)
 
 	alloc(1)
 	u8(id)
@@ -87,13 +125,15 @@ function serverProcess.sendPlayerReliable(
 	writer: (value: any) -> (),
 	data: { [string]: any }
 )
-	load(perPlayerReliable[player] or create())
+	playerAdded(player)
+	load(perPlayerReliable[player])
 
 	alloc(1)
 	u8(id)
 	writer(data)
 
 	perPlayerReliable[player] = bufferWriter.export()
+	print(perPlayerReliable[player])
 end
 
 function serverProcess.sendPlayerUnreliable(
@@ -102,13 +142,15 @@ function serverProcess.sendPlayerUnreliable(
 	writer: (value: any) -> (),
 	data: { [string]: any }
 )
-	load(perPlayerUnreliable[player])
+	playerAdded(player)
+	load(perPlayerUnreliable[player] )
 
 	alloc(1)
 	u8(id)
 	writer(data)
 
 	perPlayerUnreliable[player] = bufferWriter.export()
+	print(perPlayerUnreliable[player])
 end
 
 function serverProcess.start()
@@ -132,6 +174,7 @@ function serverProcess.start()
 		-- Check if the channel has anything before trying to send it
 		if globalReliable.cursor > 0 then
 			local b, r = dump(globalReliable)
+			print(b, r)
 			reliableRemote:FireAllClients(b, r)
 
 			globalReliable.cursor = 0
@@ -140,11 +183,13 @@ function serverProcess.start()
 
 		if globalUnreliable.cursor > 0 then
 			local b, r = dump(globalUnreliable)
+			
 			unreliableRemote:FireAllClients(b, r)
 
 			globalUnreliable.cursor = 0
 			table.clear(globalUnreliable.references)
 		end
+
 
 		for _, player in Players:GetPlayers() do
 			if perPlayerReliable[player].cursor > 0 then
@@ -158,9 +203,34 @@ function serverProcess.start()
 			if perPlayerUnreliable[player].cursor > 0 then
 				local b, r = dump(perPlayerUnreliable[player])
 				unreliableRemote:FireClient(player, b, r)
-
+				print(b, r, player.Name)
 				perPlayerUnreliable[player].cursor = 0
 				table.clear(perPlayerUnreliable[player].references)
+			end
+
+			if perPlayerExceptionReliable[player].cursor > 0 then
+				local b, r = dump(perPlayerExceptionReliable[player])
+				for _, otherPlayer in Players:GetPlayers() do
+					if otherPlayer ~= player then
+						reliableRemote:FireClient(otherPlayer, b, r)
+					end
+				end
+
+				perPlayerExceptionReliable[player].cursor = 0
+				table.clear(perPlayerExceptionReliable[player].references)
+			end
+
+			if perPlayerExceptionUnreliable[player].cursor > 0 then
+				local b, r = dump(perPlayerExceptionUnreliable[player])
+				for _, otherPlayer in Players:GetPlayers() do
+					if otherPlayer ~= player then
+						unreliableRemote:FireClient(otherPlayer, b, r)
+						-- print(b, r[1].Name, otherPlayer.Name)
+					end
+				end
+
+				perPlayerExceptionUnreliable[player].cursor = 0
+				table.clear(perPlayerExceptionUnreliable[player].references)
 			end
 		end
 	end)

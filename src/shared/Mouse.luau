@@ -12,8 +12,9 @@ local Camera = workspace.CurrentCamera
 
 local Mouse = {
     Position = Vector2.zero,
-    Hit = {
-        Position = Vector3.zero,
+    To = {
+        Origin = Vector3.zero,
+        Direction = Vector3.zero
     },
     Button1Hold = {
         IsHolding = false,
@@ -36,21 +37,30 @@ local Mouse = {
 }
 Mouse.__index = Mouse
 
-function Mouse:GetMouseHit()
-    Character = Player.Character or Player.CharacterAdded:Wait()
+function Mouse:SetMouseRayData()
     local Ray = Camera:ScreenPointToRay(self.Position.X, self.Position.Y)
     local Origin = Ray.Origin
     local Direction = Ray.Direction * 1000
+    self.To = {
+        Origin = Origin,
+        Direction = Direction
+    }
+end
+
+
+function Mouse:GetMouseHit()
+    Character = Player.Character or Player.CharacterAdded:Wait()
+    self:SetMouseRayData()
     self.RayParams.FilterType = Enum.RaycastFilterType.Exclude
     self.RayParams.FilterDescendantsInstances = {Character, Camera}
-    local Hit = workspace:Raycast(Origin, Direction, self.RayParams)
+    local Hit = workspace:Raycast(self.To.Origin, self.To.Direction, self.RayParams)
     if Hit then
-        self.Hit = Hit
+        self.Hit = {
+            Position = Hit.Position,
+        }
         return 
     else
-        self.Hit = {
-            Position = Origin + Direction
-        }
+        self.Hit = nil
     end
     return 
 end

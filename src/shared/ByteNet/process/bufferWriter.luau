@@ -72,7 +72,7 @@ function bufferWriter.reference(value: any)
 
 	buffer.writeu8(buff, cursor, index)
 	cursor += 1
-	print(references)
+	--print(references)
 end
 
 function bufferWriter.u16(value: number)
@@ -125,7 +125,7 @@ function bufferWriter.f64(value: number)
 	buffer.writef64(buff, cursor, value)
 	cursor += 8
 end
-
+ 
 function bufferWriter.copy(value)
 	buffer.copy(buff, cursor, value)
 	cursor += buffer.len(value)

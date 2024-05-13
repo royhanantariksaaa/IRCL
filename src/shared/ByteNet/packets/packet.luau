@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local types = require(script.Parent.Parent.types)
 local client = require(script.Parent.Parent.process.client)
 local server = require(script.Parent.Parent.process.server)
+local bufferWriter = require(script.Parent.Parent.process.bufferWriter)
 
 local moduleRunContext: "server" | "client" = if RunService:IsServer() then "server" else "client"
 
@@ -22,6 +23,11 @@ return function(props: types.packetProps<types.dataTypeInterface<any>>, id: numb
 			== "reliable"
 		then server.sendPlayerReliable
 		else server.sendPlayerUnreliable
+
+	local serverSendExceptFunction: (player: Player, id: number, writer: (value: any) -> (), data: any) -> () = if reliabilityType
+			== "reliable"
+		then server.sendPlayerReliableExcept
+		else server.sendPlayerUnreliableExcept
 
 	local serverSendAllFunction: (id: number, writer: (value: any) -> (), data: any) -> () = if reliabilityType
 			== "reliable"
@@ -67,11 +73,7 @@ return function(props: types.packetProps<types.dataTypeInterface<any>>, id: numb
 		end
 
 		function exported.sendToAllExcept(data, except: Player)
-			for _, player: Player in Players:GetPlayers() do
-				if player ~= except then
-					serverSendFunction(player, id, writer, data)
-				end
-			end
+			serverSendExceptFunction(except, id, writer, data)
 		end
 
 		function exported.sendToAll(data)
