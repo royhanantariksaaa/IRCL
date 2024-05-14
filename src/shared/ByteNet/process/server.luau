@@ -40,8 +40,10 @@ end
 
 local globalReliable: types.channelData = create()
 local globalUnreliable: types.channelData = create()
--- local globalExceptionUnreliable: types.channelData = create()
--- local globalExceptionReliable: types.channelData = create()
+local listReliable: types.channelData = create()
+local listUnreliable: types.channelData = create()
+local listOfListsReliable: {Player} = {}
+local listOfListsUnreliable: {Player} = {}
 
 -- TODO handle invalid data better
 local function onServerEvent(player: Player, data, references)
@@ -65,16 +67,83 @@ local function playerAdded(player)
 	end
 end
 
+local checkIfListHasSameValueAsList = function(list1, list2)
+	for i, value in ipairs(list1) do
+		if not table.find(list2, value) then
+			return nil
+		end
+	end
+	return list2
+end
+
+local function loadListOnList(newList, List)
+	local doesItExist = true
+	for _, player in ipairs(newList) do
+		for _, otherList in ipairs(List) do
+			local checkOnOtherList = checkIfListHasSameValueAsList(otherList, player)
+			if checkOnOtherList then
+				table.remove(List, checkOnOtherList)
+			end
+		end
+	end	
+end
+
+-- local function loadList(newList, List)
+-- 	local doesItExist = true
+-- 	for _, player in ipairs(newList) do
+-- 		for _, otherList in ipairs(List) do
+-- 			local checkOnOtherList = table.find(otherList, player)
+-- 		end
+-- 	end	
+
+-- end
+
 local serverProcess = {}
 
 function serverProcess.sendAllReliable(id: number, writer: (value: any) -> (), data: { [string]: any })
 	load(globalReliable)
+	
+	alloc(1)
+	u8(id)
+	writer(data)
+	
+	globalReliable = bufferWriter.export()
+end
+
+function serverProcess.sendAllUnreliable(id: number, writer: (value: any) -> (), data: { [string]: any })
+	load(globalUnreliable)
 
 	alloc(1)
 	u8(id)
 	writer(data)
 
-	globalReliable = bufferWriter.export()
+	globalUnreliable = bufferWriter.export()
+end
+
+function serverProcess.sendListReliable(players: { Player }, id: number, writer: (value: any) -> (), data: { [string]: any })
+	load(listReliable)
+	alloc(1)
+	u8(id)
+	writer(data)
+	listReliable = bufferWriter.export()
+	for _, player in ipairs(players) do
+		if not table.find(listOfListsReliable, player) then
+			table.insert(listOfListsReliable, player)
+		end
+	end
+end
+
+function serverProcess.sendListUnreliable(players: { Player }, id: number, writer: (value: any) -> (), data: { [string]: any })
+	load(listUnreliable)
+	alloc(1)
+	u8(id)
+	writer(data)
+	listUnreliable = bufferWriter.export()
+	for _, player in ipairs(players) do
+		if not table.find(listOfListsUnreliable, player) then
+			table.insert(listOfListsUnreliable, player)
+		end
+	end
 end
 
 function serverProcess.sendPlayerReliableExcept(
@@ -105,19 +174,9 @@ function serverProcess.sendPlayerUnreliableExcept(
 	alloc(1)
 	u8(id)
 	writer(data)
-
 	perPlayerExceptionUnreliable[player] = bufferWriter.export()
 end
 
-function serverProcess.sendAllUnreliable(id: number, writer: (value: any) -> (), data: { [string]: any })
-	load(globalUnreliable)
-
-	alloc(1)
-	u8(id)
-	writer(data)
-
-	globalUnreliable = bufferWriter.export()
-end
 
 function serverProcess.sendPlayerReliable(
 	player: Player,
@@ -127,13 +186,11 @@ function serverProcess.sendPlayerReliable(
 )
 	playerAdded(player)
 	load(perPlayerReliable[player])
-
+	
 	alloc(1)
 	u8(id)
 	writer(data)
-
 	perPlayerReliable[player] = bufferWriter.export()
-	print(perPlayerReliable[player])
 end
 
 function serverProcess.sendPlayerUnreliable(
@@ -148,9 +205,7 @@ function serverProcess.sendPlayerUnreliable(
 	alloc(1)
 	u8(id)
 	writer(data)
-
 	perPlayerUnreliable[player] = bufferWriter.export()
-	print(perPlayerUnreliable[player])
 end
 
 function serverProcess.start()
@@ -171,10 +226,8 @@ function serverProcess.start()
 	Players.PlayerAdded:Connect(playerAdded)
 
 	RunService.Heartbeat:Connect(function()
-		-- Check if the channel has anything before trying to send it
 		if globalReliable.cursor > 0 then
 			local b, r = dump(globalReliable)
-			print(b, r)
 			reliableRemote:FireAllClients(b, r)
 
 			globalReliable.cursor = 0
@@ -190,7 +243,27 @@ function serverProcess.start()
 			table.clear(globalUnreliable.references)
 		end
 
+		if listReliable.cursor > 0 then
+			local b, r = dump(listReliable)
+			for i, player in ipairs(listOfListsReliable) do
+				reliableRemote:FireClient(player, b, r)
+				table.remove(listOfListsReliable, i)
+			end
 
+			listReliable.cursor = 0
+			table.clear(listReliable.references)
+		end
+
+		if listUnreliable.cursor > 0 then
+			local b, r = dump(listUnreliable)
+			for i, player in ipairs(listOfListsUnreliable) do
+				unreliableRemote:FireClient(player, b, r)
+				table.remove(listOfListsUnreliable, i)
+			end
+
+			listUnreliable.cursor = 0
+			table.clear(listUnreliable.references)
+		end
 		for _, player in Players:GetPlayers() do
 			if perPlayerReliable[player].cursor > 0 then
 				local b, r = dump(perPlayerReliable[player])
@@ -203,13 +276,14 @@ function serverProcess.start()
 			if perPlayerUnreliable[player].cursor > 0 then
 				local b, r = dump(perPlayerUnreliable[player])
 				unreliableRemote:FireClient(player, b, r)
-				print(b, r, player.Name)
+				-- print(b, r, player.Name)
 				perPlayerUnreliable[player].cursor = 0
 				table.clear(perPlayerUnreliable[player].references)
 			end
 
 			if perPlayerExceptionReliable[player].cursor > 0 then
 				local b, r = dump(perPlayerExceptionReliable[player])
+				perPlayerExceptionReliable[player].cursor = 0
 				for _, otherPlayer in Players:GetPlayers() do
 					if otherPlayer ~= player then
 						reliableRemote:FireClient(otherPlayer, b, r)
@@ -233,6 +307,7 @@ function serverProcess.start()
 				table.clear(perPlayerExceptionUnreliable[player].references)
 			end
 		end
+
 	end)
 end
 

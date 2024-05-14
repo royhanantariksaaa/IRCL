@@ -12,6 +12,9 @@ export type namespaceData = {
 -- Externally used for defining packets
 export type packetProps<T> = {
 	value: T,
+	Quota: number,
+	QuotaPerFrame: number,
+	Rate: number,
 	reliabilityType: ("reliable" | "unreliable")?,
 	callbackBehavior: {
 		spawnThread: boolean,

@@ -1,4 +1,3 @@
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared : Model = ReplicatedStorage:FindFirstChild("Shared")
@@ -6,12 +5,15 @@ local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 
-local packets = require(Shared:FindFirstChild("packets") or error("packets module not found"))
+local Inputs = require(Shared:FindFirstChild("Inputs") or error("Inputs module not found"))
 
 local Camera = workspace.CurrentCamera
 
 local Mouse = {
     Position = Vector2.zero,
+    Hit = {
+        Position = Vector3.zero
+    },
     To = {
         Origin = Vector3.zero,
         Direction = Vector3.zero
@@ -37,104 +39,111 @@ local Mouse = {
 }
 Mouse.__index = Mouse
 
-function Mouse:SetMouseRayData()
-    local Ray = Camera:ScreenPointToRay(self.Position.X, self.Position.Y)
+function Mouse.SetMouseRayData()
+    local Ray = Camera:ScreenPointToRay(Mouse.Position.X, Mouse.Position.Y)
     local Origin = Ray.Origin
     local Direction = Ray.Direction * 1000
-    self.To = {
+    Mouse.To = {
         Origin = Origin,
         Direction = Direction
     }
 end
 
 
-function Mouse:GetMouseHit()
+function Mouse.GetMouseHit()
     Character = Player.Character or Player.CharacterAdded:Wait()
-    self:SetMouseRayData()
-    self.RayParams.FilterType = Enum.RaycastFilterType.Exclude
-    self.RayParams.FilterDescendantsInstances = {Character, Camera}
-    local Hit = workspace:Raycast(self.To.Origin, self.To.Direction, self.RayParams)
+    Mouse.SetMouseRayData()
+    Mouse.RayParams.FilterType = Enum.RaycastFilterType.Exclude
+    Mouse.RayParams.FilterDescendantsInstances = {Character, Camera}
+    local Hit = workspace:Raycast(Mouse.To.Origin, Mouse.To.Direction, Mouse.RayParams)
     if Hit then
-        self.Hit = {
-            Position = Hit.Position,
-        }
+        Mouse.Hit = Hit
         return 
     else
-        self.Hit = nil
+        Mouse.Hit = {
+            Position = Mouse.To.Origin + Mouse.To.Direction
+        }
     end
     return 
 end
 
-function Mouse:Update()
-    self.Position = UserInputService:GetMouseLocation() or Vector2.new()
-    self:GetMouseHit()
+function Mouse.Update()
+    Mouse.Position = Inputs.GetMouseLocation() or Vector2.new()
+    Mouse.GetMouseHit()
 end
 
-function Mouse:OnMouseButton1Click(func)
-    table.insert(self.MouseButton1, {func, 1, false})
+function Mouse.OnMouseButton1Click(func)
+    table.insert(Mouse.MouseButton1, {func, 1, false})
 end
 
-function Mouse:OnMouseButton2Click(func)
-    table.insert(self.MouseButton2, {func, 1, false})
+function Mouse.OnMouseButton2Click(func)
+    table.insert(Mouse.MouseButton2, {func, 1, false})
 end
 
-function Mouse:OnMouseButton1Down(func)
-    table.insert(self.MouseButton1, {func, 2, false})
+function Mouse.OnMouseButton1Down(func)
+    table.insert(Mouse.MouseButton1, {func, 2, false})
 end
 
-function Mouse:OnMouseButton2Down(func)
-    table.insert(self.MouseButton2, {func, 2, false})
+function Mouse.OnMouseButton2Down(func)
+    table.insert(Mouse.MouseButton2, {func, 2, false})
 end
 
-function Mouse:OnMouseButton1Up(func)
-    table.insert(self.MouseButton1, {func, 3})
+function Mouse.OnMouseButton1Up(func)
+    table.insert(Mouse.MouseButton1, {func, 3})
 end
 
-function Mouse:OnMouseButton2Up(func)
-    table.insert(self.MouseButton2, {func, 3})
+function Mouse.OnMouseButton2Up(func)
+    table.insert(Mouse.MouseButton2, {func, 3})
 end
 
-function Mouse:OnMouseMove(func)
-    table.insert(self.MouseMove, func)
+function Mouse.WhileMouseButton1Down(func)
+    table.insert(Mouse.MouseButton1, {func, 4, false})
 end
 
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        Mouse.Button1Hold.IsHolding = true
-    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Mouse.Button2Hold.IsHolding = true
+function Mouse.WhileMouseButton2Down(func)
+    table.insert(Mouse.MouseButton2, {func, 4, false})
+end
+
+function Mouse.OnMouseMove(func)
+    table.insert(Mouse.MouseMove, func)
+end
+
+Inputs.OnBegin(Enum.UserInputType.MouseButton1, function()
+    Mouse.Button1Hold.IsHolding = true
+end)
+
+Inputs.OnChanged(Enum.UserInputType.MouseMovement, function()
+    Mouse.Update()
+    for i, doFunc in pairs(Mouse.MouseMove) do
+        doFunc()
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        Mouse:Update()
-        for i, doFunc in pairs(Mouse.MouseMove) do
-            doFunc()
+Inputs.OnEnd(Enum.UserInputType.MouseButton1, function()
+    Mouse.Button1Hold.IsHolding = false
+    for i, doFunc in pairs(Mouse.MouseButton1) do
+        if doFunc[2] == 3 then
+            doFunc[1]()
         end
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        Mouse.Button1Hold.IsHolding = false
-        for i, doFunc in pairs(Mouse.MouseButton1) do
-            if doFunc[2] == 3 then
-                doFunc[1]()
-            end
-        end
-    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Mouse.Button2Hold.IsHolding = false
-        for i, doFunc in pairs(Mouse.MouseButton2) do
-            if doFunc[2] == 3 then
-                doFunc[1]()
-            end
+
+Inputs.OnBegin(Enum.UserInputType.MouseButton2, function()
+    Mouse.Button2Hold.IsHolding = true
+end)
+
+Inputs.OnEnd(Enum.UserInputType.MouseButton2, function()
+    Mouse.Button2Hold.IsHolding = false
+    for i, doFunc in pairs(Mouse.MouseButton2) do
+        if doFunc[2] == 3 then
+            doFunc[1]()
         end
     end
 end)
 
 RunService.RenderStepped:Connect(function(dt: number)
-    Mouse:Update()
+    Mouse.Update()
     for i, doFunc in Mouse.MouseButton1 do
         if Mouse.Button1Hold.IsHolding then
             if Mouse.Button1Hold.Time < dt then
@@ -150,6 +159,8 @@ RunService.RenderStepped:Connect(function(dt: number)
                         doFunc[1]()
                         doFunc[3] = true
                     end
+                elseif doFunc[2] == 4 then
+                    doFunc[1]()
                 end
             end
         else
@@ -173,6 +184,8 @@ RunService.RenderStepped:Connect(function(dt: number)
                         doFunc[1]()
                         doFunc[3] = true
                     end
+                elseif doFunc[2] == 4 then
+                    doFunc[1]()
                 end
             end
         else

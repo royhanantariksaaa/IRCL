@@ -1,12 +1,10 @@
 --!native
 --!optimize 2
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local types = require(script.Parent.Parent.types)
 local client = require(script.Parent.Parent.process.client)
 local server = require(script.Parent.Parent.process.server)
-local bufferWriter = require(script.Parent.Parent.process.bufferWriter)
 
 local moduleRunContext: "server" | "client" = if RunService:IsServer() then "server" else "client"
 
@@ -15,7 +13,6 @@ local moduleRunContext: "server" | "client" = if RunService:IsServer() then "ser
 	It's just faster to use closures than metatables
 ]]
 return function(props: types.packetProps<types.dataTypeInterface<any>>, id: number)
-	-- Basic properties: reliability type, "unique" which is used to get the packet ID, and set up listeners
 	local reliabilityType = props.reliabilityType or "reliable"
 	local listeners = {}
 
@@ -23,6 +20,11 @@ return function(props: types.packetProps<types.dataTypeInterface<any>>, id: numb
 			== "reliable"
 		then server.sendPlayerReliable
 		else server.sendPlayerUnreliable
+
+	local serverSendListFunction: (players: { Player }, id: number, writer: (value: any) -> (), data: any) -> () = if reliabilityType
+			== "reliable"
+		then server.sendListReliable
+		else server.sendListUnreliable
 
 	local serverSendExceptFunction: (player: Player, id: number, writer: (value: any) -> (), data: any) -> () = if reliabilityType
 			== "reliable"
@@ -63,7 +65,7 @@ return function(props: types.packetProps<types.dataTypeInterface<any>>, id: numb
 
 	if moduleRunContext == "server" then
 		function exported.sendToList(data, players: { Player })
-			for _, player in players do
+			for _, player in ipairs(players) do
 				serverSendFunction(player, id, writer, data)
 			end
 		end
@@ -79,6 +81,11 @@ return function(props: types.packetProps<types.dataTypeInterface<any>>, id: numb
 		function exported.sendToAll(data)
 			serverSendAllFunction(id, writer, data)
 		end
+		
+		exported.Quota = props.Quota or 1
+		exported.QuotaPerFrame = props.QuotaPerFrame or 1
+		exported.Rate = props.Rate or 20
+		
 	elseif moduleRunContext == "client" then
 		function exported.send(data)
 			clientSendFunction(id, writer, data)
