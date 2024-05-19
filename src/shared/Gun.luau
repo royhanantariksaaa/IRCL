@@ -149,66 +149,70 @@ if RunService:IsClient() then
         local Character = Characters.GetCharacter(Player)
         local Humanoid = Character.Humanoid
         if Humanoid then
-            local IKRightArm = Humanoid:FindFirstChild("IKRightHand")
-            local IKLeftArm = Humanoid:FindFirstChild("IKLeftHand")
-            local IKRootTiltAttachment = Humanoid.RootPart:FindFirstChild("IKRootTiltAttachment")
-            local RightArmBendPole = Character.Parts.UpperTorso:FindFirstChild("RightArmBendPole")
-            local LeftArmBendPole = Character.Parts.UpperTorso:FindFirstChild("LeftArmBendPole")
-            if IKRootTiltAttachment then
-                if Gun.model then
-                    if IKRootTiltAttachment.Position ~= Vector3.new(150,0,-150) then
-                        IKRootTiltAttachment.Position = Vector3.new(150,0,-150)
-                    end
-                else
-                    if IKRootTiltAttachment.Position ~= Vector3.new(0,0,-150) then
-                        IKRootTiltAttachment.Position = Vector3.new(0,0,-150)
-                    end
-                end
-            end
-            if IKRightArm then
-                if not Gun.states or not Gun.config then
-                    if IKRightArm.Enabled ~= false then
-                        IKRightArm.Enabled = false
-                    end
-                    if IKRightArm.Target ~= nil then
-                        IKRightArm.Target = nil
-                    end
-                else
-                    if IKRightArm.Enabled ~= true then
-                        IKRightArm.Enabled = true
-                    end
-                    if IKRightArm.Target ~= Gun.model.PrimaryPart.RightHand then
-                        IKRightArm.Target = Gun.model.PrimaryPart.RightHand
-                    end
-                    if RightArmBendPole then
-                        if IKRightArm.Pole ~= RightArmBendPole then
-                            IKRightArm.Pole = RightArmBendPole
-                        end
-                    end
-                end
-            end
-            if IKLeftArm then
-                if not Gun.states or not Gun.config then
-                    if IKLeftArm.Enabled ~= false then
-                        IKLeftArm.Enabled = false
-                    end
-                    if IKLeftArm.Target ~= nil then
-                        IKLeftArm.Target = nil
-                    end
-                else
-                    if IKLeftArm.Enabled ~= true then
-                        IKLeftArm.Enabled = true
-                    end
-                    if IKLeftArm.Target ~= Gun.model.PrimaryPart.LeftHand then
-                        IKLeftArm.Target = Gun.model.PrimaryPart.LeftHand
-                    end
-                    if LeftArmBendPole then
-                        if IKLeftArm.Pole ~= LeftArmBendPole then
-                            IKLeftArm.Pole = LeftArmBendPole
-                            print("Setting ArmPole")
-                        end
-                    end
-                end
+            if Humanoid.RigType == Enum.HumanoidRigType.R15 then
+                -- local IKRightArm = Humanoid:FindFirstChild("IKRightHand")
+                -- local IKLeftArm = Humanoid:FindFirstChild("IKLeftHand")
+                -- local IKRootTiltAttachment = Humanoid.RootPart:FindFirstChild("IKRootTiltAttachment")
+                -- local RightArmBendPole = Character.Parts.UpperTorso:FindFirstChild("RightArmBendPole")
+                -- local LeftArmBendPole = Character.Parts.UpperTorso:FindFirstChild("LeftArmBendPole")
+                -- if IKRootTiltAttachment then
+                --     if Gun.model then
+                --         if IKRootTiltAttachment.Position ~= Vector3.new(150,0,-150) then
+                --             IKRootTiltAttachment.Position = Vector3.new(150,0,-150)
+                --         end
+                --     else
+                --         if IKRootTiltAttachment.Position ~= Vector3.new(0,0,-150) then
+                --             IKRootTiltAttachment.Position = Vector3.new(0,0,-150)
+                --         end
+                --     end
+                -- end
+                -- if IKRightArm then
+                --     if not Gun.states or not Gun.config then
+                --         if IKRightArm.Enabled ~= false then
+                --             IKRightArm.Enabled = false
+                --         end
+                --         if IKRightArm.Target ~= nil then
+                --             IKRightArm.Target = nil
+                --         end
+                --     else
+                --         if IKRightArm.Enabled ~= true then
+                --             IKRightArm.Enabled = true
+                --         end
+                --         if IKRightArm.Target ~= Gun.model.PrimaryPart.RightHand then
+                --             IKRightArm.Target = Gun.model.PrimaryPart.RightHand
+                --         end
+                --         if RightArmBendPole then
+                --             if IKRightArm.Pole ~= RightArmBendPole then
+                --                 IKRightArm.Pole = RightArmBendPole
+                --             end
+                --         end
+                --     end
+                -- end
+                -- if IKLeftArm then
+                --     if not Gun.states or not Gun.config then
+                --         if IKLeftArm.Enabled ~= false then
+                --             IKLeftArm.Enabled = false
+                --         end
+                --         if IKLeftArm.Target ~= nil then
+                --             IKLeftArm.Target = nil
+                --         end
+                --     else
+                --         if IKLeftArm.Enabled ~= true then
+                --             IKLeftArm.Enabled = true
+                --         end
+                --         if IKLeftArm.Target ~= Gun.model.PrimaryPart.LeftHand then
+                --             IKLeftArm.Target = Gun.model.PrimaryPart.LeftHand
+                --         end
+                --         if LeftArmBendPole then
+                --             if IKLeftArm.Pole ~= LeftArmBendPole then
+                --                 IKLeftArm.Pole = LeftArmBendPole
+                --                 print("Setting ArmPole")
+                --             end
+                --         end
+                --     end
+                -- end
+            else
+                
             end
         end
         if not Gun.states or not Gun.config then

@@ -14,6 +14,7 @@ if RunService:IsServer() then
     }
 
     local ServerStorage = game:GetService("ServerStorage")
+    local R6Parts = ServerStorage:FindFirstChild("ClassicR6") or error("R6 parts not found")
     local R15Parts = ServerStorage:FindFirstChild("ClassicS15") or error("R15 parts not found")
     local AppearanceLoaderFolders = Create("Folder", {
         Name = "FaceLoaders",
@@ -33,7 +34,7 @@ if RunService:IsServer() then
     })
     local _Humanoid = Create("Humanoid", {
         HipHeight = 2,
-        RigType = Enum.HumanoidRigType.R15,
+        RigType = Enum.HumanoidRigType.R6,
         AutomaticScalingEnabled = true,
         RequiresNeck = false,
         Parent = CharacterTemplate
@@ -74,7 +75,7 @@ if RunService:IsServer() then
     end
 
     function Characters.Init(Player)
-        local PerPlayerLoader = R15Parts:Clone()
+        local PerPlayerLoader = _Humanoid.RigType == Enum.HumanoidRigType.R6 and R6Parts:Clone() or R15Parts:Clone()
         PerPlayerLoader.Name = Player.Name
         PerPlayerLoader.Parent = AppearanceLoaderFolders
         local PerPlayerHumanoid = PerPlayerLoader:FindFirstChildOfClass("Humanoid")
@@ -82,7 +83,7 @@ if RunService:IsServer() then
             Model = nil,
             HumanoidDescription = GetHumanoidDescription(Player.UserId < 0 and 19086276 or Player.UserId),
             FakeModel = PerPlayerLoader,
-            RigType = Enum.HumanoidRigType.R15,
+            RigType = _Humanoid.RigType,
         }
         local Character = Characters.List[Player]
         task.spawn(function()
@@ -128,87 +129,6 @@ else
     local Player = Players.LocalPlayer
     local Mouse = require(Shared:FindFirstChild("Mouse") or error("Mouse module not found"))
     
-    local R6Parts = {
-        {
-            Part = {
-                Name = "Torso",
-                Size = Vector3.new(2, 2, 1),
-            },
-            Joint = {
-                Name = "RootJoint",
-                Part0 = "HumanoidRootPart",
-                Part1 = "Torso",
-                C0 = CFrame.new(0, 0, 0, -1, -0, -0, 0, 0, 1, 0, 1, 0),
-                C1 = CFrame.new(0, 0, 0, -1, -0, -0, 0, 0, 1, 0, 1, 0),
-            },
-        },
-        {
-            Part = {
-                Name = "Head",
-                Size = Vector3.new(2, 1, 1),
-            },
-            Joint = {
-                Name = "Neck",
-                Part0 = "Torso",
-                Part1 = "Head",
-                C0 = CFrame.new(0, 1, 0, -1, -0, -0, 0, 0, 1, 0, 1, 0),
-                C1 = CFrame.new(0, -0.5, 0, -1, -0, -0, 0, 0, 1, 0, 1, 0),
-            },
-        },
-        {
-            Part = {
-                Name = "Left Arm",
-                Size = Vector3.new(1, 2, 1),
-            },
-            Joint = {
-                Name = "Left Shoulder",
-                Part0 = "Torso",
-                Part1 = "Left Arm",
-                C0 = CFrame.new(-1, 0.5, 0, -0, -0, -1, 0, 1, 0, 1, 0, 0),
-                C1 = CFrame.new(0.5, 0.5, 0, -0, -0, -1, 0, 1, 0, 1, 0, 0),
-            },
-        },
-        {
-            Part = {
-                Name = "Right Arm",
-                Size = Vector3.new(1, 2, 1),
-            },
-            Joint = {
-                Name = "Right Shoulder",
-                Part0 = "Torso",
-                Part1 = "Right Arm",
-                C0 = CFrame.new( 1, 0.5, 0, 0, 0, 1, 0, 1, 0, -1, -0, -0),
-                C1 = CFrame.new(-0.5, 0.5, 0, 0, 0, 1, 0, 1, 0, -1, -0, -0),
-            },
-        },
-        {
-            Part = {
-                Name = "Left Leg",
-                Size = Vector3.new(1, 2, 1),
-            },
-            Joint = {
-                Name = "Left Hip",
-                Part0 = "Torso",
-                Part1 = "Left Leg",
-                C0 = CFrame.new(-1, -1, 0, -0, -0, -1, 0, 1, 0, 1, 0, 0),
-                C1 = CFrame.new(-0.5, 1, 0, -0, -0, -1, 0, 1, 0, 1, 0, 0),
-            },
-        },
-        {
-            Part = {
-                Name = "Right Leg",
-                Size = Vector3.new(1, 2, 1),
-            },
-            Joint = {
-                Name = "Right Hip",
-                Part0 = "Torso",
-                Part1 = "Right Leg",
-                C0 = CFrame.new(1, -1, 0, 0, 0, 1, 0, 1, 0, -1, -0, -0),
-                C1 = CFrame.new(0.5, 1, 0, 0, 0, 1, 0, 1, 0, -1, -0, -0),
-            },
-        },
-    }
-
     local OnDied = {}
     local LocalCharacter = {}
     local Characters = {
@@ -268,124 +188,125 @@ else
             }
             Character = Characters.List[player]
         end
-        if Character.RigType == "R6"  then
-            for Name, Info in pairs(R6Parts) do
-                local NewPart = Create("Part", Info.Part)
-                if Character.RigType == "R6" and Info.Part.Name == "Head" then
-                    local SpecialMesh = Create("SpecialMesh", {
-                        Name = "Mesh",
-                        Scale = Vector3.new(1.25, 1.25, 1.25),
-                        Parent = NewPart,
-                    })
-                end
-                local Part0 = Character[Info.Joint.Part0] or error(`Part0 not found, {Info.Joint.Part0}, {Character[Info.Joint.Part0]}`)
-                local _JointData = Info.Joint
-                _JointData.Part0 = Part0
-                _JointData.Part1 = NewPart
-                _JointData.Parent = NewPart 
-                local Joint = Create("Motor6D", _JointData)
-                NewPart.Parent = Character.Model
-                Character[NewPart.Name] = NewPart
-            end
-        elseif Character.RigType == "R15" then
-            local CharacterLoader = AppearanceLoaderFolders:FindFirstChild(player.Name)
-            if not CharacterLoader then return end
-            local FakeHead = CharacterLoader.Head
-            local Cloned = CharacterLoader:Clone()
-            local RootPart = Character.Humanoid.RootPart
-            Cloned.LowerTorso.Root.Part0 = RootPart
-            Character.Humanoid.HipHeight = Cloned.Humanoid.HipHeight
-            Cloned.HumanoidRootPart:Destroy()
-            Cloned.Humanoid:Destroy()
-            for i,v in Cloned:GetChildren() do
-                local Joint = v:FindFirstChildOfClass("Motor6D")
-                if Joint then
-                    Character.Joints[Joint.Name] = Joint
-                end
-                v.Parent = Character.Model
-                Character.Parts[v.Name] = v
-            end
-            local IKNeckLookAt = Character.Humanoid.RootPart:FindFirstChild("IKLookAt") or Create("Attachment", {
-                    Name = "IKLookAt",
-                    Parent = Character.Humanoid.RootPart,
-                })
-            IKNeckLookAt.WorldPosition = Mouse.Hit.Position
-            local IKNeck = Character.Humanoid:FindFirstChild("IKNeck") or Create("IKControl", {
-                    Name = "IKNeck",
-                    Type = Enum.IKControlType.LookAt,
-                    Priority = 1,
-                    SmoothTime = 0.12,
-                    ChainRoot = Character.Parts.UpperTorso,
-                    EndEffector = Character.Parts.Head,
-                    Target = IKNeckLookAt,
-                    Parent = Character.Humanoid,
-                })
-            IKNeck.Target = IKNeckLookAt
-            local IKRootTilt = Character.Humanoid:FindFirstChild("IKRootTilt") 
-            if not IKRootTilt then
-                local IKRootTiltAttachment = Create("Attachment", {
-                    Name = "IKRootTiltAttachment",
-                    CFrame = CFrame.new(0,0,-150),
-                    Parent = RootPart
-                })
-                local IKRootTilt = Create("IKControl", {
-                    Name = "IKRootTilt",
-                    Type = Enum.IKControlType.LookAt,
-                    Priority = 0,
-                    SmoothTime = 0.12,
-                    ChainRoot = RootPart,
-                    EndEffector = Character.Parts.LowerTorso,
-                    Target = IKRootTiltAttachment,
-                    Parent = Character.Humanoid
-                })
-            end
-            local RightArmBendPole = RootPart:FindFirstChild("RightArmBendPole") or Create("Attachment", {
-                Name = "RightArmBendPole",
-                Position = Vector3.new(2,0,0),
-                Parent = Character.Parts.UpperTorso,
-            })
-            local LeftArmBendPole = RootPart:FindFirstChild("LeftArmBendPole") or Create("Attachment", {
-                Name = "LeftArmBendPole",
-                Position = Vector3.new(-2,0,0),
-                Parent = Character.Parts.UpperTorso,
-            })
-            local IKRightHand = Character.Humanoid:FindFirstChild("IKRightHand") or Create("IKControl", {
-                Name = "IKRightHand",
-                Type = Enum.IKControlType.Transform,
-                Priority = 2,
-                Weight = 1,
-                SmoothTime = 0,
-                ChainRoot = Character.Parts.RightUpperArm,
-                EndEffector = Character.Parts.RightHand,
-                Parent = Character.Humanoid,
-            })
-            local IKLeftHand = Character.Humanoid:FindFirstChild("IKLeftHand") or Create("IKControl", {
-                Name = "IKLeftHand",
-                Type = Enum.IKControlType.Transform,
-                Priority = 2,
-                Weight = 1,
-                SmoothTime = 0,
-                ChainRoot = Character.Parts.LeftUpperArm,
-                EndEffector = Character.Parts.LeftHand,
-                Parent = Character.Humanoid,
-            })
-            CharacterLoader.ChildAdded:Connect(function(child: Instance)  
-                local clonedChild = child:Clone()
-                clonedChild.Parent = Character.Model
-                if clonedChild:IsA("Accessory") then
-                    local clonedAccessoryWeld = clonedChild.Handle.AccessoryWeld
-                    clonedAccessoryWeld.Part1 = Character.Parts.Head
-                end
-            end)
-            FakeHead.ChildAdded:Connect(function(child)
-                if child.Name == "face" then
-                    local Head = Character.Parts.Head
-                    if Head and Head.face then 
-                        Head.face.Texture = child.Texture
-                    end
-                end
-            end)
+        local CharacterLoader = AppearanceLoaderFolders:FindFirstChild(player.Name)
+        if not CharacterLoader then return end
+        local FakeHead = CharacterLoader.Head
+        local Cloned = CharacterLoader:Clone()
+        local CloneHumanoid = Cloned:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character.Humanoid.RootPart
+        if CloneHumanoid.RigType == Enum.HumanoidRigType.R6 then 
+            Cloned.HumanoidRootPart.RootJoint.Part0 = RootPart
+            Cloned.HumanoidRootPart.RootJoint.Parent = RootPart
+        else 
+            Cloned.LowerTorso.Root.Part0 = RootPart 
         end
+        Character.Humanoid.HipHeight = Cloned.Humanoid.HipHeight
+        Cloned.HumanoidRootPart:Destroy()
+        Cloned.Humanoid:Destroy()
+        for i,v in Cloned:GetChildren() do
+            local Joint = v:FindFirstChildOfClass("Motor6D")
+            if Joint then
+                Character.Joints[Joint.Name] = Joint
+            end
+            v.Parent = Character.Model
+            Character.Parts[v.Name] = v
+        end
+        -- local IKNeckLookAt = Character.Humanoid.RootPart:FindFirstChild("IKLookAt") or Create("Attachment", {
+        --         Name = "IKLookAt",
+        --         Parent = Character.Humanoid.RootPart,
+        --     })
+        -- IKNeckLookAt.WorldPosition = Mouse.Hit.Position
+        -- local IKNeck = Character.Humanoid:FindFirstChild("IKNeck") or Create("IKControl", {
+        --         Name = "IKNeck",
+        --         Type = Enum.IKControlType.LookAt,
+        --         Priority = 1,
+        --         SmoothTime = 0.12,
+        --         ChainRoot = Character.Parts.UpperTorso or Character.Parts.Head,
+        --         EndEffector = Character.Parts.Head,
+        --         Target = IKNeckLookAt,
+        --         Parent = Character.Humanoid,
+        --     })
+        -- IKNeck.Target = IKNeckLookAt
+        -- local IKNeckLookAt = Character.Humanoid.RootPart:FindFirstChild("IKLookAt") or Create("Attachment", {
+        --         Name = "IKLookAt",
+        --         Parent = Character.Humanoid.RootPart,
+        --     })
+        -- IKNeckLookAt.WorldPosition = Mouse.Hit.Position
+        -- local IKNeck = Character.Humanoid:FindFirstChild("IKNeck") or Create("IKControl", {
+        --         Name = "IKNeck",
+        --         Type = Enum.IKControlType.LookAt,
+        --         Priority = 1,
+        --         SmoothTime = 0.12,
+        --         ChainRoot = Character.Parts.UpperTorso,
+        --         EndEffector = Character.Parts.Head,
+        --         Target = IKNeckLookAt,
+        --         Parent = Character.Humanoid,
+        --     })
+        -- IKNeck.Target = IKNeckLookAt
+        -- local IKRootTilt = Character.Humanoid:FindFirstChild("IKRootTilt") 
+        -- if not IKRootTilt then
+        --     local IKRootTiltAttachment = Create("Attachment", {
+        --         Name = "IKRootTiltAttachment",
+        --         CFrame = CFrame.new(0,0,-150),
+        --         Parent = RootPart
+        --     })
+        --     local IKRootTilt = Create("IKControl", {
+        --         Name = "IKRootTilt",
+        --         Type = Enum.IKControlType.LookAt,
+        --         Priority = 0,
+        --         SmoothTime = 0.12,
+        --         ChainRoot = RootPart,
+        --         EndEffector = Character.Parts.LowerTorso,
+        --         Target = IKRootTiltAttachment,
+        --         Parent = Character.Humanoid
+        --     })
+        -- end
+        -- local RightArmBendPole = RootPart:FindFirstChild("RightArmBendPole") or Create("Attachment", {
+        --     Name = "RightArmBendPole",
+        --     Position = Vector3.new(2,0,0),
+        --     Parent = Character.Parts.UpperTorso,
+        -- })
+        -- local LeftArmBendPole = RootPart:FindFirstChild("LeftArmBendPole") or Create("Attachment", {
+        --     Name = "LeftArmBendPole",
+        --     Position = Vector3.new(-2,0,0),
+        --     Parent = Character.Parts.UpperTorso,
+        -- })
+        -- local IKRightHand = Character.Humanoid:FindFirstChild("IKRightHand") or Create("IKControl", {
+        --     Name = "IKRightHand",
+        --     Type = Enum.IKControlType.Transform,
+        --     Priority = 2,
+        --     Weight = 1,
+        --     SmoothTime = 0,
+        --     ChainRoot = Character.Parts.RightUpperArm,
+        --     EndEffector = Character.Parts.RightHand,
+        --     Parent = Character.Humanoid,
+        -- })
+        -- local IKLeftHand = Character.Humanoid:FindFirstChild("IKLeftHand") or Create("IKControl", {
+        --     Name = "IKLeftHand",
+        --     Type = Enum.IKControlType.Transform,
+        --     Priority = 2,
+        --     Weight = 1,
+        --     SmoothTime = 0,
+        --     ChainRoot = Character.Parts.LeftUpperArm,
+        --     EndEffector = Character.Parts.LeftHand,
+        --     Parent = Character.Humanoid,
+        -- })
+        CharacterLoader.ChildAdded:Connect(function(child: Instance)  
+            local clonedChild = child:Clone()
+            clonedChild.Parent = Character.Model
+            if clonedChild:IsA("Accessory") then
+                local clonedAccessoryWeld = clonedChild.Handle.AccessoryWeld
+                clonedAccessoryWeld.Part1 = Character.Parts.Head
+            end
+        end)
+        FakeHead.ChildAdded:Connect(function(child)
+            if child.Name == "face" then
+                local Head = Character.Parts.Head
+                if Head and Head.face then 
+                    Head.face.Texture = child.Texture
+                end
+            end
+        end)
         Character.Humanoid.Died:Connect(function()
             Characters.processOnPlayerDied(player)
         end)
@@ -488,6 +409,8 @@ else
             if LeftWrist then
                 LeftWrist.Transform = CFrame.new()
             end
+            local Neck = LocalCharacter.Joints.Neck
+            Neck.Transform = CFrame.Angles(1.5,0,0)
         end
     end)
 
