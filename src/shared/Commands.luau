@@ -1,7 +1,13 @@
+local RunService = game:GetService("RunService")
+if RunService:IsClient() then
+    return {}
+end
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared : Model = ReplicatedStorage:FindFirstChild("Shared") or error("Shared module not found")
 local Clients = require(Shared:FindFirstChild("Clients") or error("Clients module not found"))
+local packets = require(Shared:FindFirstChild("packets") or error("packets module not found"))
+
 
 local Commands = {
     Admin = {
@@ -88,8 +94,8 @@ end)
 
 Commands.RegisterCommand("spectate", false, function(Player, args)
     local target = Commands.GetPlayerFromString(args[#args])
+    local client = Clients.List[Player]
     if target then
-        local client = Clients.List[Player]
         if client then
             local targetClient = Clients.List[target]
             if targetClient then
@@ -97,6 +103,9 @@ Commands.RegisterCommand("spectate", false, function(Player, args)
                 print("Spectating", target.Name)
             end
         end
+    else
+        client.Spectate = nil
+        packets.stopSendMousePositionAndCFrame.sendTo(true, Player)
     end
 end)
 

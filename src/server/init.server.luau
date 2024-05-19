@@ -5,7 +5,32 @@ local Clients = require(Shared:FindFirstChild("Clients") or error("Clients modul
 local packets = require(Shared:FindFirstChild("packets") or error("packets module not found"))
 local Cooldown = require(Shared:FindFirstChild("Cooldown") or error("Cooldown module not found"))
 local Commands = require(Shared:FindFirstChild("Commands") or error("Commands module not found"))
+local Camera = require(Shared:FindFirstChild("Camera") or error("Camera module not found"))
+local Mouse = require(Shared:FindFirstChild("Mouse") or error("Mouse module not found"))
+local Characters = require(Shared:FindFirstChild("Character") or error("Character module not found"))
+local AnimationList = require(Shared:FindFirstChild("Animation") or error("Animation module not found"))
+local Create = require(Shared:FindFirstChild("Create") or error("Create module not found"))
 local Gun = require(Shared:FindFirstChild("Gun") or error("Gun module not found"))
+
+local AnimationFolder = Create("Folder", {
+    Name = "AnimationFolder",
+    Parent = Shared
+})
+
+for AnimName, Animation in pairs(AnimationList) do
+    local _AnimFolder = Create("Folder", {
+        Name = AnimName,
+        Parent = AnimationFolder
+    })
+    for ActionName, id  in Animation do
+        local _Anim = Create("Animation", {
+            Name = AnimName..ActionName,
+            AnimationId = "rbxassetid://" .. id,
+            Parent = _AnimFolder
+        })
+    end
+end
+-- print(AnimationFolder)
 
 local ServerTime = 0
 local ServerFrame = 0
@@ -15,11 +40,13 @@ workspace:SetAttribute("ServerFrame", ServerFrame)
 local packetQueues = {}
 
 Clients.OnPlayerJoin(function(player: Player)
+    print(Characters)
+    local Character = Characters.GetCharacter(player)
     Gun.GetLoadoutConfigs(player)
+    Gun.LoadLoadout(player, Character.FakeModel)
 end)
 
 Clients.OnPlayerSpawn(function(player: Player)
-    Gun.LoadLoadout(player)
 end)
 
 local function queuePacket(player: Player, packet: () -> (), rate: number)
@@ -38,12 +65,16 @@ RunService.Heartbeat:Connect(function(dt: number)
         if client.Spectate then
             local Spectate = Clients.List[client.Spectate]
             if Spectate then
-                packets.sendMousePositionAndCFrameFromServer.sendTo({
-                    player = client.Spectate,
-                    position = Spectate.Mouse.WorldPosition,
-                    rotation = Spectate.Camera.Rotation,
-                    scroll = Spectate.Camera.Scroll,
-                }, player)
+                if ServerTime - Packets.sendMousePositionAndCFrameFromServer.LastSent >= Packets.sendMousePositionAndCFrameFromServer.Wait then
+                    if #Spectate.CamAndPoses > 0 then
+                        packets.sendMousePositionAndCFrameFromServer.sendTo({
+                            player = client.Spectate,
+                            positions = Spectate.CamAndPoses
+                        }, player)
+                        Spectate.CamAndPoses = {}
+                    end
+                    Packets.sendMousePositionAndCFrameFromServer.LastSent = ServerTime
+                end
             end
         end
         for name, packet in pairs(Packets) do

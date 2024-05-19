@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared : Model = ReplicatedStorage:FindFirstChild("Shared")
 local packets = require(Shared:FindFirstChild("packets") or error("packets module not found"))
+local Characters = require(Shared:FindFirstChild("Character") or error("Character module not found"))
 
 if RunService:IsClient() then
     return {}
@@ -31,15 +32,12 @@ function Clients.InitClient(Player)
         Packets = Packets,
         Mouse = {
             WorldPosition = Vector3.new(),
-            Button1Hold = false,
-            Button2Hold = false,
-            Button1Click = false,
-            Button2Click = false,
         },
         Camera = {
             Rotation = Vector3.new(),
             Scroll = 0,
         },
+        CamAndPoses = {},
         Weapons = {
             {Gun = "G4"},
             {Gun = "G4"}
@@ -73,32 +71,8 @@ function Clients.OnPlayerDie(callback)
     table.insert(Clients.PlayerDies, callback)
 end
 
-local function GetCharacterPartsWithHats(Character)
-    local parts = {}
-    local joints = {}
-    local humanoid : Humanoid? = nil
-    for _, obj in ipairs(Character:GetChildren()) do
-        if obj:IsA("BasePart") then
-            parts[obj.Name] = obj
-        elseif obj:IsA("Accessory") then
-            for _, part in ipairs(obj:GetChildren()) do
-                if part:IsA("BasePart") then
-                    parts[part.Name] = part
-                end
-            end
-        elseif obj:IsA("Humanoid") then
-            humanoid = obj
-        end
-    end
-    return parts, joints, humanoid
-end
-
 local function ResetPlayerCamera(client, Player)
-    if client.CameraPart then
-        local ClientCamera = client.Camera
-        ClientCamera.Rotation = Vector3.new()
-        ClientCamera.Scroll = 0
-    else
+    if client then
         local ClientCamera = client.Camera
         ClientCamera.Rotation = Vector3.new()
         ClientCamera.Scroll = 0
@@ -131,29 +105,26 @@ end
 
 local function OnCharacterSpawned(Player, Character)
     local client = Clients.List[Player]
-    client.BodyParts, client.BodyJoints,client.Humanoid = GetCharacterPartsWithHats(Character)
-    print(Clients.List[Player])
     ResetPlayerCamera(client, Player)
     processOnPlayerSpawned(Player, Character)
-    client.Humanoid.Died:Connect(function()
+    client.Character.Humanoid.Died:Connect(function()
         processOnPlayerDied(Player)
         client.Humanoid = nil
-        client.BodyParts = nil
-        client.BodyJoints = nil
     end)
-
 end
 
 Players.PlayerAdded:Connect(function(Player)
     local client = Clients.InitClient(Player)
-    processOnPlayerJoined(Player)
+    client.Character = Characters.Init(Player)
     Player.CharacterAdded:Connect(function(Character)
         OnCharacterSpawned(Player, Character)
     end)
     ResetPlayerCamera(client, Player)
+    processOnPlayerJoined(Player)
 end)
 
 Players.PlayerRemoving:Connect(function(Player)
+    Characters.Destroy(Player)
     processOnPlayerLeave(Player)
     Clients.List[Player] = nil
 end)

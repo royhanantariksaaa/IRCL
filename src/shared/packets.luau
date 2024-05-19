@@ -5,28 +5,52 @@ local ByteNet = require(Shared:FindFirstChild("ByteNet") or error("ByteNet modul
 
 return ByteNet.defineNamespace("remote", function()
     return {
-        sendMousePositionAndCFrame = ByteNet.definePacket({
+        sendMousePosition = ByteNet.definePacket({
+            value = ByteNet.vec3,
+            Quota = 1,
+            QuotaPerFrame = 1,
+            Rate = 32,
+            reliabilityType = 'reliable'
+        }),
+        sendCameraCFrame = ByteNet.definePacket({
             value = ByteNet.struct({
-                position = ByteNet.vec3,
                 rotation = ByteNet.vec3,
                 scroll = ByteNet.float32
             }),
             Quota = 1,
             QuotaPerFrame = 1,
-            Rate = 20,
-            reliabilityType = 'unreliable'
+            Rate = 32,
+            reliabilityType = 'reliable'
         }),
         sendMousePositionAndCFrameFromServer = ByteNet.definePacket({
             value = ByteNet.struct({
                 player = ByteNet.inst,
-                position = ByteNet.vec3,
-                rotation = ByteNet.vec3,
-                scroll = ByteNet.float32
+                positions = ByteNet.array(ByteNet.array(ByteNet.float32))
             }),
             Quota = 1,
             QuotaPerFrame = 1,
+            Rate = 16,
+            reliabilityType = 'reliable'
+        }),
+        -- sendMousePositionAndCFrameFromServer = ByteNet.definePacket({
+        --     value = ByteNet.struct({
+        --         player = ByteNet.inst,
+        --         positions = ByteNet.array(ByteNet.vec3),
+        --         rotations = ByteNet.array(ByteNet.vec3),
+        --         scrolls = ByteNet.array(ByteNet.float32)
+        --     }),
+        --     Quota = 1,
+        --     QuotaPerFrame = 1,
+        --     Rate = 32,
+        --     reliabilityType = 'unreliable'
+        -- }),
+        
+        stopSendMousePositionAndCFrame = ByteNet.definePacket({
+            value = ByteNet.bool,
+            Quota = 1,
+            QuotaPerFrame = 1,
             Rate = 62,
-            reliabilityType = 'unreliable'
+            reliabilityType = 'reliable'
         }),
         equipSlot = ByteNet.definePacket({
             value = ByteNet.string,

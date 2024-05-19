@@ -10,17 +10,10 @@ local Input = require(Shared:FindFirstChild("Inputs") or error("Inputs module no
 local Create = require(Shared:FindFirstChild("Create") or error("Create module not found"))
 local Gun = require(Shared:FindFirstChild("Gun") or error("Gun module not found"))
 local Camera = require(Shared:FindFirstChild("Camera") or error("Camera module not found"))
+local Mouse = require(Shared:FindFirstChild("Mouse") or error("Mouse module not found"))
+local Characters = require(Shared:FindFirstChild("Character") or error("Character module not found"))
 
 local ClientTime = 0
-
-local ScreenGui = Create("ScreenGui", {
-    Parent = Player.PlayerGui
-})
-local SpectatorMouseFrame = Create("Frame", {
-    BackgroundTransparency = 0,
-    Size = UDim2.new(0, 10, 0, 10),
-    Parent = ScreenGui
-})
 
 Input.OnKeyDown(Enum.KeyCode.One, function()
     local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -43,12 +36,12 @@ Input.OnKeyDown(Enum.KeyCode.R, function()
     Gun.Reload()
 end)
 
+Mouse.OnMouseMove(function()
+    local Character = Characters.GetCharacter(Player)
+    if not Character then return end
+    -- Character.FollowMouse = true
+end)
 
 RunService.RenderStepped:Connect(function(dt: number)      
     ClientTime += dt
 end)
-
-local function UpdateSpectatorMouseFrame(WorldPosition : Vector3)
-    local screenPos = Camera:WorldToScreenPoint(WorldPosition)
-    SpectatorMouseFrame.Position = UDim2.new(0, screenPos.X - SpectatorMouseFrame.Size.X.Offset/2, 0, screenPos.Y - SpectatorMouseFrame.Size.Y.Offset/2)
-end
